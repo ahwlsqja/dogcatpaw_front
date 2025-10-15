@@ -44,7 +44,7 @@ export function EmailVerificationFlow({
       let web3Token: string | undefined;
       try {
         web3Token = await generateWeb3Token(signMessageAsync);
-      } catch (err) {
+      } catch {
         console.log('Web3Token generation skipped (dev mode or user cancelled)');
       }
 
@@ -58,8 +58,8 @@ export function EmailVerificationFlow({
         setError(result.error || result.message || '코드 발송에 실패했습니다');
         onError?.(result.error || '코드 발송 실패');
       }
-    } catch (err: any) {
-      const errorMsg = err.message || '네트워크 오류가 발생했습니다';
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '네트워크 오류가 발생했습니다';
       setError(errorMsg);
       onError?.(errorMsg);
     } finally {
@@ -83,7 +83,7 @@ export function EmailVerificationFlow({
       let web3Token: string | undefined;
       try {
         web3Token = await generateWeb3Token(signMessageAsync);
-      } catch (err) {
+      } catch {
         console.log('Web3Token generation skipped (dev mode or user cancelled)');
       }
 
@@ -98,8 +98,8 @@ export function EmailVerificationFlow({
         setRemainingAttempts(result.remainingAttempts);
         onError?.(result.error || '코드 검증 실패');
       }
-    } catch (err: any) {
-      const errorMsg = err.message || '네트워크 오류가 발생했습니다';
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '네트워크 오류가 발생했습니다';
       setError(errorMsg);
       onError?.(errorMsg);
     } finally {

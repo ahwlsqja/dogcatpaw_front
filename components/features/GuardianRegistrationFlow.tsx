@@ -8,6 +8,15 @@ import { Input } from '@/components/ui/Input';
 import { registerGuardian } from '@/lib/actions/guardian';
 import { generateWeb3Token } from '@/lib/auth/web3-token';
 
+interface GuardianRegistrationResult {
+  guardianId?: string;
+  authId?: string;
+  txHash?: string;
+  springJobId?: string;
+  success?: boolean;
+  message?: string;
+}
+
 interface GuardianRegistrationFlowProps {
   /**
    * Pre-filled email from email verification
@@ -16,7 +25,7 @@ interface GuardianRegistrationFlowProps {
   /**
    * Callback when registration is complete
    */
-  onRegistrationComplete?: (data: any) => void;
+  onRegistrationComplete?: (data: GuardianRegistrationResult) => void;
   /**
    * Callback on error
    */
@@ -35,12 +44,15 @@ export function GuardianRegistrationFlow({
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    gender: '',
+    old: '',
+    address: '',
     verificationMethod: 2, // 2: Email
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [registrationResult, setRegistrationResult] = useState<any>(null);
+  const [registrationResult, setRegistrationResult] = useState<GuardianRegistrationResult | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +71,7 @@ export function GuardianRegistrationFlow({
       let web3Token: string | undefined;
       try {
         web3Token = await generateWeb3Token(signMessageAsync);
-      } catch (err) {
+      } catch {
         console.log('Web3Token generation skipped (dev mode or user cancelled)');
       }
 
@@ -71,6 +83,9 @@ export function GuardianRegistrationFlow({
         {
           name: formData.name || undefined,
           phone: formData.phone || undefined,
+          gender: formData.gender || undefined,
+          old: formData.old ? parseInt(formData.old) : undefined,
+          address: formData.address || undefined,
           verificationMethod: formData.verificationMethod as 1 | 2 | 3,
         }
       );
@@ -83,19 +98,38 @@ export function GuardianRegistrationFlow({
 
         console.log('Production mode: Signing transaction...', result.transactionData);
 
-        // Step 2: Sign and send transaction using wallet
-        const txHash = await walletClient.sendTransaction({
-          to: result.transactionData.to as `0x${string}`,
-          data: result.transactionData.data as `0x${string}`,
-          from: address,
-          gas: BigInt(result.transactionData.gasLimit || 500000),
-          gasPrice: BigInt(result.transactionData.gasPrice || 0),
-          value: BigInt(result.transactionData.value || 0),
-        });
+        // MetaMask doesn't support signTransaction(), so we use sendTransaction instead
+        // This means the transaction is broadcast by MetaMask, not the backend
+        let signedTxOrHash: string;
 
-        console.log('Transaction sent:', txHash);
+        try {
+          // Try to sign without broadcasting (only works with some wallets like WalletConnect)
+          signedTxOrHash = await walletClient.signTransaction({
+            to: result.transactionData.to as `0x${string}`,
+            data: result.transactionData.data as `0x${string}`,
+            from: address,
+            gas: BigInt(result.transactionData.gasLimit || 500000),
+            gasPrice: BigInt(result.transactionData.gasPrice || 0),
+            value: BigInt(result.transactionData.value || 0),
+            nonce: result.transactionData.nonce ? Number(result.transactionData.nonce) : undefined,
+            chainId: result.transactionData.chainId ? Number(result.transactionData.chainId) : 1337,
+          });
+          console.log('Transaction signed (raw tx length):', signedTxOrHash.length);
+        } catch (signError) {
+          // Fallback for MetaMask and other wallets that don't support signTransaction
+          console.log('signTransaction not supported, using sendTransaction instead');
+          signedTxOrHash = await walletClient.sendTransaction({
+            to: result.transactionData.to as `0x${string}`,
+            data: result.transactionData.data as `0x${string}`,
+            from: address,
+            gas: BigInt(result.transactionData.gasLimit || 500000),
+            gasPrice: BigInt(result.transactionData.gasPrice || 0),
+            value: BigInt(result.transactionData.value || 0),
+          });
+          console.log('Transaction sent (hash):', signedTxOrHash);
+        }
 
-        // Step 3: Submit signed transaction hash back to backend
+        // Step 3: Submit signed transaction or hash to backend
         const finalResult = await registerGuardian(
           email,
           address,
@@ -103,8 +137,11 @@ export function GuardianRegistrationFlow({
           {
             name: formData.name || undefined,
             phone: formData.phone || undefined,
+            gender: formData.gender || undefined,
+            old: formData.old ? parseInt(formData.old) : undefined,
+            address: formData.address || undefined,
             verificationMethod: formData.verificationMethod as 1 | 2 | 3,
-            signedTx: txHash,
+            signedTx: signedTxOrHash,
           }
         );
 
@@ -127,8 +164,8 @@ export function GuardianRegistrationFlow({
         setError(errorMsg);
         onError?.(errorMsg);
       }
-    } catch (err: any) {
-      const errorMsg = err.message || '네트워크 오류가 발생했습니다';
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : '네트워크 오류가 발생했습니다';
       setError(errorMsg);
       onError?.(errorMsg);
       console.error('Guardian registration error:', err);
@@ -253,6 +290,53 @@ export function GuardianRegistrationFlow({
                 placeholder="010-1234-5678"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                disabled={loading}
+              />
+            </div>
+
+            {/* Gender (optional) */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                성별 (선택)
+              </label>
+              <select
+                className="w-full px-4 py-2 border border-border rounded-lg"
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                disabled={loading}
+              >
+                <option value="">선택하세요</option>
+                <option value="MALE">남성</option>
+                <option value="FEMALE">여성</option>
+              </select>
+            </div>
+
+            {/* Age (optional) */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                나이 (선택)
+              </label>
+              <Input
+                type="number"
+                placeholder="30"
+                min="1"
+                max="150"
+                value={formData.old}
+                onChange={(e) => setFormData({ ...formData, old: e.target.value })}
+                disabled={loading}
+              />
+            </div>
+
+            {/* Address (optional) */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                주소 (선택)
+              </label>
+              <Input
+                type="text"
+                placeholder="서울시 강남구"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 disabled={loading}
               />
             </div>

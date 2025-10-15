@@ -75,7 +75,7 @@ apiClient.interceptors.response.use(
 export default apiClient;
 
 // Helper function for FormData requests
-export const createFormData = (data: Record<string, any>): FormData => {
+export const createFormData = (data: Record<string, unknown>): FormData => {
   const formData = new FormData();
 
   Object.keys(data).forEach((key) => {
@@ -84,8 +84,8 @@ export const createFormData = (data: Record<string, any>): FormData => {
     if (value instanceof File) {
       formData.append(key, value);
     } else if (Array.isArray(value)) {
-      value.forEach((item) => {
-        formData.append(`${key}[]`, item);
+      value.forEach((item: unknown) => {
+        formData.append(`${key}[]`, String(item));
       });
     } else if (value !== null && value !== undefined) {
       formData.append(key, String(value));

@@ -5,7 +5,11 @@ export interface serverActionMessage {
   status: string;
   code: string;
   message: string;
-  result?: any;
+  result?: {
+    email?: string;
+    warning?: string;
+    remainingAttempts?: number;
+  } | null;
 }
 
 /**
@@ -17,7 +21,7 @@ export interface serverActionMessage {
  * - Production: web3Token (signed message) + walletAddress header required
  */
 export async function sendVerificationCodeAction(
-  _: any,
+  _: unknown,
   formData: FormData
 ): Promise<serverActionMessage> {
   try {
@@ -137,7 +141,7 @@ export async function sendVerificationCodeAction(
  * - Production: web3Token (signed message) + walletAddress header required
  */
 export async function verifyEmailCodeAction(
-  _: any,
+  _: unknown,
   formData: FormData
 ): Promise<serverActionMessage> {
   try {

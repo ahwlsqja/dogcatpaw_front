@@ -1,7 +1,6 @@
 // lib/wagmi.config.ts
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { Chain } from 'viem';
-import { injected } from 'wagmi/connectors';
 
 // Hyperledger Besu custom network configuration
 export const besuNetwork: Chain = {
@@ -29,15 +28,10 @@ export const besuNetwork: Chain = {
   testnet: true,
 };
 
-// Configure with only MetaMask (injected connector)
+// RainbowKit v2.x automatically configures connectors including MetaMask
 export const config = getDefaultConfig({
   appName: 'DogCatPaw',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID',
   chains: [besuNetwork],
-  connectors: [
-    injected({
-      target: 'metaMask',
-    }),
-  ],
   ssr: true, // Enable for Next.js SSR
 });

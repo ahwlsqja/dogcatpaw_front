@@ -6,6 +6,15 @@ import { useRouter } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { GuardianRegistrationFlow } from '@/components/features/GuardianRegistrationFlow';
 
+interface GuardianRegistrationResult {
+  guardianId?: string;
+  authId?: string;
+  txHash?: string;
+  springJobId?: string;
+  success?: boolean;
+  message?: string;
+}
+
 export default function GuardianRegistrationPage() {
   const { isConnected } = useAccount();
   const router = useRouter();
@@ -22,7 +31,7 @@ export default function GuardianRegistrationPage() {
     setVerifiedEmail(email);
   }, [router]);
 
-  const handleRegistrationComplete = (data: any) => {
+  const handleRegistrationComplete = (data: GuardianRegistrationResult) => {
     console.log('Guardian registration complete:', data);
     // Clear verified email from sessionStorage
     sessionStorage.removeItem('verifiedEmail');

@@ -5,7 +5,12 @@ export interface serverActionMessage {
   status: string;
   code: string;
   message: string;
-  result?: any;
+  result?: {
+    guardianId?: string;
+    authId?: string;
+    txHash?: string;
+    springJobId?: string;
+  } | null;
 }
 
 export type VerificationMethod = 1 | 2 | 3; // 1: SMS, 2: Email, 3: Both
@@ -19,7 +24,7 @@ export type VerificationMethod = 1 | 2 | 3; // 1: SMS, 2: Email, 3: Both
  * - Production: web3Token (signed message) + walletAddress header required
  */
 export async function registerGuardianAction(
-  _: any,
+  _: unknown,
   formData: FormData
 ): Promise<serverActionMessage> {
   try {
@@ -27,6 +32,10 @@ export async function registerGuardianAction(
     const email = formData.get('email')?.toString() ?? '';
     const phone = formData.get('phone')?.toString() ?? '';
     const name = formData.get('name')?.toString() ?? '';
+    const gender = formData.get('gender')?.toString() ?? '';
+    const oldStr = formData.get('old')?.toString() ?? '';
+    const old = oldStr ? parseInt(oldStr) : undefined;
+    const userAddress = formData.get('address')?.toString() ?? '';
     const verificationMethod = parseInt(
       formData.get('verificationMethod')?.toString() ?? '2'
     );
@@ -102,6 +111,39 @@ export async function registerGuardianAction(
       }
     }
 
+    // Validate gender (if provided)
+    if (gender && !['M', 'F'].includes(gender)) {
+      return {
+        isSuccess: false,
+        status: '400',
+        code: 'INVALID_GENDER',
+        message: '성별은 M 또는 F만 가능합니다.',
+        result: null,
+      };
+    }
+
+    // Validate age (if provided)
+    if (old !== undefined && (old < 1 || old > 150)) {
+      return {
+        isSuccess: false,
+        status: '400',
+        code: 'INVALID_AGE',
+        message: '나이는 1-150 사이여야 합니다.',
+        result: null,
+      };
+    }
+
+    // Validate address length (if provided)
+    if (userAddress && (userAddress.length < 2 || userAddress.length > 200)) {
+      return {
+        isSuccess: false,
+        status: '400',
+        code: 'INVALID_ADDRESS',
+        message: '주소는 2-200자 사이여야 합니다.',
+        result: null,
+      };
+    }
+
     // Validate verification method
     const validMethods: VerificationMethod[] = [1, 2, 3];
     if (!validMethods.includes(verificationMethod as VerificationMethod)) {
@@ -115,7 +157,15 @@ export async function registerGuardianAction(
     }
 
     // Prepare JSON data for API request
-    const guardianData: any = {
+    const guardianData: {
+      email: string;
+      verificationMethod: number;
+      phone?: string;
+      name?: string;
+      gender?: string;
+      old?: number;
+      address?: string;
+    } = {
       email: email.trim(),
       verificationMethod,
     };
@@ -126,6 +176,18 @@ export async function registerGuardianAction(
 
     if (name) {
       guardianData.name = name.trim();
+    }
+
+    if (gender) {
+      guardianData.gender = gender.trim();
+    }
+
+    if (old !== undefined) {
+      guardianData.old = old;
+    }
+
+    if (userAddress) {
+      guardianData.address = userAddress.trim();
     }
 
     // Prepare headers
@@ -206,6 +268,9 @@ export async function registerGuardian(
   options?: {
     phone?: string;
     name?: string;
+    gender?: string;
+    old?: number;
+    address?: string;
     verificationMethod?: VerificationMethod;
     signedTx?: string; // For submitting signed transaction (production mode, step 2)
   }
@@ -224,7 +289,16 @@ export async function registerGuardian(
       throw new Error('유효한 지갑 주소를 입력해주세요.');
     }
 
-    const requestData: any = {
+    const requestData: {
+      email: string;
+      verificationMethod: number;
+      phone?: string;
+      name?: string;
+      gender?: string;
+      old?: number;
+      address?: string;
+      signedTx?: string;
+    } = {
       email: email.trim(),
       verificationMethod: options?.verificationMethod ?? 2,
     };
@@ -235,6 +309,18 @@ export async function registerGuardian(
 
     if (options?.name) {
       requestData.name = options.name.trim();
+    }
+
+    if (options?.gender) {
+      requestData.gender = options.gender.trim();
+    }
+
+    if (options?.old !== undefined) {
+      requestData.old = options.old;
+    }
+
+    if (options?.address) {
+      requestData.address = options.address.trim();
     }
 
     // Include signed transaction if provided (production mode, step 2)

@@ -83,7 +83,13 @@ export const petService = {
   /**
    * Get pet transfer history
    */
-  async getTransferHistory(petDID: string): Promise<any[]> {
+  async getTransferHistory(petDID: string): Promise<Array<{
+    transferId: string;
+    from: string;
+    to: string;
+    timestamp: string;
+    status: string;
+  }>> {
     const response = await apiClient.get(`/pet/${petDID}/transfers`);
     return response.data;
   },
