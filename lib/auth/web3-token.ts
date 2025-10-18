@@ -78,7 +78,7 @@ export class Web3TokenManager {
    * Get current token if valid, otherwise generate new one
    */
   async getToken(
-    signMessage: (message: string) => Promise<string>,
+    signMessage: (args: { message: string }) => Promise<string>,
     expiresIn: string = '1d'
   ): Promise<string> {
     // Check if current token is still valid

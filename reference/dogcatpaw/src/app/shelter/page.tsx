@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/card';
 import { fetchShelterList, type ShelterItem } from '@/lib/api/shelter';
 
