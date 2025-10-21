@@ -48,6 +48,7 @@ export function GuardianRegistrationFlow({
     old: '',
     address: '',
     verificationMethod: 2, // 2: Email
+    role: 'USER' as 'USER' | 'ADMIN',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -87,6 +88,7 @@ export function GuardianRegistrationFlow({
           old: formData.old ? parseInt(formData.old) : undefined,
           address: formData.address || undefined,
           verificationMethod: formData.verificationMethod as 1 | 2 | 3,
+          role: formData.role,
         }
       );
 
@@ -141,6 +143,7 @@ export function GuardianRegistrationFlow({
             old: formData.old ? parseInt(formData.old) : undefined,
             address: formData.address || undefined,
             verificationMethod: formData.verificationMethod as 1 | 2 | 3,
+            role: formData.role,
             signedTx: signedTxOrHash,
           }
         );
@@ -355,6 +358,23 @@ export function GuardianRegistrationFlow({
                 <option value={1}>SMS</option>
                 <option value={2}>이메일</option>
                 <option value={3}>SMS + 이메일</option>
+              </select>
+            </div>
+
+
+            {/* Role */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                관리자 이신가요??
+              </label>
+              <select
+                className="w-full px-4 py-2 border border-border rounded-lg"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as 'USER' | 'ADMIN' })}
+                disabled={loading}
+              >
+                <option value="USER">일반 유저</option>
+                <option value="ADMIN">관리자</option>
               </select>
             </div>
 

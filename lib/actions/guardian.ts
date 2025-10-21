@@ -15,6 +15,8 @@ export interface serverActionMessage {
 
 export type VerificationMethod = 1 | 2 | 3; // 1: SMS, 2: Email, 3: Both
 
+export type Role = 'USER' | 'ADMIN'; // Backend enum: USER, ADMIN
+
 /**
  * Register guardian
  * Requires email verification first and Web3Token authentication (DIDAuthGuard on backend)
@@ -39,6 +41,7 @@ export async function registerGuardianAction(
     const verificationMethod = parseInt(
       formData.get('verificationMethod')?.toString() ?? '2'
     );
+    const role = (formData.get('role')?.toString() ?? 'USER') as Role;
     const walletAddress = formData.get('walletAddress')?.toString() ?? '';
     const web3Token = formData.get('web3Token')?.toString() ?? '';
 
@@ -156,6 +159,18 @@ export async function registerGuardianAction(
       };
     }
 
+    // Validate role
+    const validRoles: Role[] = ['USER', 'ADMIN'];
+    if (!validRoles.includes(role)) {
+      return {
+        isSuccess: false,
+        status: '400',
+        code: 'INVALID_ROLE',
+        message: '역할이 유효하지 않습니다. (USER 또는 ADMIN)',
+        result: null,
+      };
+    }
+
     // Prepare JSON data for API request
     const guardianData: {
       email: string;
@@ -165,9 +180,11 @@ export async function registerGuardianAction(
       gender?: string;
       old?: number;
       address?: string;
+      role: Role;
     } = {
       email: email.trim(),
       verificationMethod,
+      role, // Add role field (extracted from FormData on line 44-46)
     };
 
     if (phone) {
@@ -285,6 +302,7 @@ export async function registerGuardian(
     old?: number;
     address?: string;
     verificationMethod?: VerificationMethod;
+    role?: Role;
     signedTx?: string; // For submitting signed transaction (production mode, step 2)
   }
 ) {
@@ -310,10 +328,12 @@ export async function registerGuardian(
       gender?: string;
       old?: number;
       address?: string;
+      role: Role;
       signedTx?: string;
     } = {
       email: email.trim(),
       verificationMethod: options?.verificationMethod ?? 2,
+      role: options?.role ?? 'USER', // Default to USER
     };
 
     if (options?.phone) {
